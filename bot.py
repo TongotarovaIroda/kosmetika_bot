@@ -1,7 +1,8 @@
 import logging
+import asyncio
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
-    Application, CommandHandler, MessageHandler, 
+    Application, CommandHandler, MessageHandler,
     CallbackQueryHandler, ContextTypes, filters, ConversationHandler
 )
 
@@ -48,13 +49,12 @@ async def get_phone(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['address'] = update.message.text
     user = update.message.from_user
-    
+
     product_name = context.user_data['product_name']
     phone = context.user_data['phone']
     address = context.user_data['address']
     photo_id = context.user_data['photo_id']
-    
-    # Foydalanuvchiga tasdiqlash
+
     await update.message.reply_text(
         f"✅ Buyurtmangiz qabul qilindi!\n\n"
         f"📦 Mahsulot: {product_name}\n"
@@ -62,8 +62,7 @@ async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📍 Manzil: {address}\n\n"
         f"⏳ Tez orada siz bilan bog'lanamiz!"
     )
-    
-    # Adminга xabar yuborish
+
     caption = (
         f"🛒 YANGI BUYURTMA!\n\n"
         f"👤 Mijoz: {user.full_name}\n"
@@ -72,18 +71,17 @@ async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 Telefon: {phone}\n"
         f"📍 Manzil: {address}"
     )
-    
-    # Inline tugma — yuborilmoqda
+
     keyboard = [[InlineKeyboardButton("📦 Yuborilmoqda deb belgilash", callback_data=f"sent_{user.id}")]]
     reply_markup = InlineKeyboardMarkup(keyboard)
-    
+
     await context.bot.send_photo(
         chat_id=ADMIN_ID,
         photo=photo_id,
         caption=caption,
         reply_markup=reply_markup
     )
-    
+
     context.user_data.clear()
     return ConversationHandler.END
 
@@ -91,15 +89,14 @@ async def get_address(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def mark_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    
+
     customer_id = int(query.data.split("_")[1])
-    
-    # Mijozga xabar
+
     try:
         await context.bot.send_message(
             chat_id=customer_id,
             text=(
-                "🚀 Xabar: Mahsulotingiz yuborilmoqda!\n\n"
+                "🚀 Mahsulotingiz yuborilmoqda!\n\n"
                 "📦 Buyurtmangiz yo'lda. Yaqin orada yetib boradi.\n"
                 "📞 Savollar bo'lsa: bizga yozing!"
             )
@@ -110,7 +107,7 @@ async def mark_sent(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except Exception as e:
         await query.edit_message_caption(
-            caption=query.message.caption + f"\n\n❌ Xabar yuborishda xato: {e}",
+            caption=query.message.caption + f"\n\n❌ Xato: {e}",
             reply_markup=None
         )
 
@@ -123,7 +120,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # === BOTNI ISHGA TUSHIRISH ===
 def main():
     app = Application.builder().token(BOT_TOKEN).build()
-    
+
     conv_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
@@ -134,12 +131,12 @@ def main():
         },
         fallbacks=[CommandHandler("cancel", cancel)]
     )
-    
+
     app.add_handler(conv_handler)
     app.add_handler(CallbackQueryHandler(mark_sent, pattern="^sent_"))
-    
+
     print("✅ Bot ishga tushdi!")
-    app.run_polling()
+    app.run_polling(drop_pending_updates=True)
 
 if __name__ == "__main__":
     main()
