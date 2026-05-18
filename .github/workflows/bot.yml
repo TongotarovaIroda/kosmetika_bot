@@ -1,0 +1,20 @@
+name: Telegram Bot
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '*/5 * * * *'
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Python o'rnatish
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Kutubxona o'rnatish
+        run: pip install python-telegram-bot==20.7
+      - name: Botni ishga tushirish
+        run: timeout 270 python bot.py || true
